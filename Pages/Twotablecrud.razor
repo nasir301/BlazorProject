@@ -1,0 +1,235 @@
+﻿@page "/twotablecrud"
+@using BlazorApp1;
+@inject CustomerOrderService mdService
+@inject NavigationManager NavigationManager
+@inject IWebHostEnvironment env
+
+<div class="container">
+    <div class="row">
+
+        <div class="col-sm-4">
+            <h2>Category</h2>
+            <hr />
+            <div class="form-group">
+                <label for="CustomerID" class="control-label">CategoryID</label>
+                <input id="CustomerID" class="form-control" @bind="@mas.CustomerID" @bind:event="oninput" @onkeyup="@(()=>Get2Tables())" />
+            </div>
+            <div class="form-group">
+                <label for="CustomerName" class="control-label">CategoryName</label>
+                <input id="CustomerName" class="form-control" @bind="@mas.CustomerName" />
+            </div>
+            <div class="form-group">
+                <label for="BillingAddress" class="control-label">BillingAddress</label>
+                <input id="BillingAddress" class="form-control" @bind="@mas.BillingAddress" />
+            </div>
+            <div class="form-group">
+                <label for="ShippingAddress" class="control-label">ShippingAddress</label>
+                <input id="ShippingAddress" class="form-control" @bind="@mas.ShippingAddress" />
+            </div>
+        </div>
+
+        <div class="col-sm-8">
+            
+            <h2>Product</h2>
+            <hr />
+            <div class="form-group">
+                <label for="OrderID" class="control-label">ProductID</label>
+                <input id="OrderID" name="OrderID " @bind="@obj.OrderID" class="form-control" onkeyup="Child_Exists()" />
+                <div id="slerror" style="color:red">@error</div>
+            </div>
+
+            <div class="form-group">
+                <label for="OrderDate" class="control-label">OrderDate</label>
+                <input type="date" id="OrderDate" @bind="@obj.OrderDate" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label for="cost" class="control-label">cost</label>
+                <input id="cost" @bind="@obj.cost" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label for="rate" class="control-label">rate</label>
+                <input id="rate" @bind="@obj.rate" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label for="picture" class="control-label">picture</label>
+                <input id="picture" @bind="@obj.picture" class="form-control" />
+                <InputFile OnChange="@SingleUpload" id="Picture" class="btn-primary" />
+            </div>
+            <hr />
+            <div class="form-group">
+                <input type="button" value="Add" @onclick="@Add" class="btn btn-primary" />
+                <input type="button" value="Update" @onclick="@Update" class="btn btn-primary" />
+            </div>
+            <h2>Order Table</h2>
+            <table id="Order" class="table">
+                <thead>
+                    <tr><th>SlNo</th><th>ProductID</th><th>OrderDate</th><th>cost</th><th>rate</th><th>picture</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @if (det is null)
+                    {
+                        <p><em>Loading... !</em></p>
+                    }
+                    else
+                    {
+                        int index = 1;
+                        @foreach (var a in det)
+                        {
+                            int sl2 = index - 1;
+                            <tr>
+                                <td>@index</td>
+                                <td>@a.OrderID</td>
+                                <td>@a.cost</td>
+                                <td>@a.rate</td>
+                                <td><img src="/uploads/@a.picture" width="100" /></td>
+                                <td>
+                                    <a class="nav-link" @onclick="@(() =>Show(@a.OrderID,@a.CustomerID,@a.OrderDate,@a.picture,@a.rate,@a.cost,@sl2))">
+                                        <span class="oi oi-pencil" aria-hidden="true">@index Edit</span>
+                                    </a>
+                                    <a class="nav-link" @onclick="@(()=>Delete(@a.OrderID))">
+                                        <span class="oi oi-trash" aria-hidden="true">Delete</span>
+                                    </a>
+                                </td>
+                            </tr>
+                            index++;
+                        }
+                    }
+                </tbody>
+            </table>
+
+
+
+
+            <button type="button" class="btn btn-primary" @onclick="@CreateCustomer">Save</button>
+            <button type="button" class="btn btn-info" @onclick="@UpdateCustomer">Update</button>
+            <button type="button" class="btn btn-danger" @onclick="@DeleteCustomer">Delete</button>
+
+        </div>
+    </div>
+
+
+
+   
+       
+    
+
+</div>
+
+@code {
+    List<Order> det = new List<Order>();
+    int sl = 0;
+    Order obj = new Order();
+    BlazorApp1.Customer mas = new BlazorApp1.Customer();
+    string error = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        mas.CustomerID = mdService.GenerateCode();
+
+    }
+
+    protected async void CreateCustomer()
+    {
+        CustomerOrderVm md = new CustomerOrderVm();
+        md.Customer = mas;
+        md.Order = det;
+        mdService.AddCustomerOrderVm(md);
+        Refresh();
+        mas.CustomerID = mdService.GenerateCode();
+
+    }
+    protected async void Add()
+    {
+        det.Add(new Order() { OrderID = obj.OrderID, CustomerID = mas.CustomerID, OrderDate = obj.OrderDate, cost = obj.cost, rate = obj.rate, picture = obj.picture });
+        InvokeAsync(() => { StateHasChanged(); });
+
+    }
+    protected async void Update()
+    {
+        det[sl].OrderID = obj.OrderID;
+        det[sl].OrderDate = obj.OrderDate;
+        det[sl].cost = obj.cost;
+        det[sl].rate = obj.rate;
+        det[sl].picture = obj.picture;
+        InvokeAsync(() => { StateHasChanged(); });
+    }
+    protected async void Delete(string id)
+    {
+        var d = (from a in det
+                 where a.OrderID == id
+                 select a).First();
+        det.Remove(d);
+        InvokeAsync(() => { StateHasChanged(); });
+    }
+    public async void Refresh()
+    {
+
+        det.Clear();
+        obj = new Order();
+        mas = new BlazorApp1.Customer();
+        InvokeAsync(() => { StateHasChanged(); });
+    }
+    protected async void UpdateCustomer()
+    {
+        CustomerOrderVm md = new CustomerOrderVm();
+        md.Customer = mas;
+        md.Order = det;
+        mdService.UpdateCustomerOrderVm(md);
+        Refresh();
+        mas.CustomerID = mdService.GenerateCode();
+
+    }
+    protected async void DeleteCustomer()
+    {
+        mdService.RemoveCustomerOrderVm(mas.CustomerID);
+        Refresh();
+        mas.CustomerID = mdService.GenerateCode();
+    }
+    protected async void Get2Tables()
+    {
+        CustomerOrderVm md = new CustomerOrderVm();
+        md = mdService.GetTwoTables2(mas.CustomerID);
+        if (md.Customer != null) mas = md.Customer;
+        if (md.Order.Count > 0)
+            det = md.Order;
+        else
+            det.Clear();
+        InvokeAsync(() => { StateHasChanged(); });
+    }
+    protected async void Show(string a, string b, DateTime c, string f, decimal? g, decimal? h, int sl1)
+    {
+        obj.OrderID = a;
+        obj.CustomerID = b;
+        obj.OrderDate = c;
+        obj.picture = f;
+        obj.rate = g;
+        obj.cost = h;
+        sl = sl1;
+    }
+    string Message = "No file(s) selected";
+    IReadOnlyList<IBrowserFile> selectedFiles;
+    private async Task SingleUpload(InputFileChangeEventArgs e)
+    {
+        selectedFiles = e.GetMultipleFiles();
+        foreach (var file in selectedFiles)
+        {
+            Stream stream = file.OpenReadStream();
+            var path = $"{env.WebRootPath}\\uploads\\{file.Name}";
+            FileStream fs = File.Create(path);
+            await stream.CopyToAsync(fs);
+            obj.picture = file.Name;
+            stream.Close();
+            fs.Close();
+        }
+        this.StateHasChanged();
+    }
+    protected async void Child_Exists()
+    {
+        //int a = mdService.Child_Exists(obj.OrderID);
+        //if (a == 1)
+        //    error = "Exists";
+        //else
+        //    error = "";
+    }
+
+}
